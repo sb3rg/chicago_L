@@ -43,12 +43,27 @@ avg_by_stn <- sum_by_uniq[, .( avg_rides = sum_rides %>% mean ), by = stationnam
   (function(x) x[order(-avg_rides )])
   
 ##print results
-"The highest average ridership station is: " %>% 
+"The highest average ridership is for station: " %>% 
   paste0( avg_by_stn[1]$stationname %>% sQuote(), 
-         " at an average of ",
+         " with an average of ",
          avg_by_stn[1]$avg_rides %>% as.integer(),
-         " riders per day" ) %>%
+         " boardings per day" ) %>%
   print()
 
 
 
+####QUESTION 2:  Which stop has the greatest standard deviation in 
+# weekday (exclude holidays) ridership per day, and what is it?
+std_dev_by_stn <- sum_by_uniq[ daytype == "W" ] %>% #filter out weekends and holidays
+  ##calculate std_dev
+  (function(x) x[, .( std_dev_rides = sum_rides %>% sd ), by = stationname]) %>%
+  ##sort in descending order
+  (function(x) x[order(-std_dev_rides)])
+
+##print results
+"The greatest standard devation of weekday ridership is for station: " %>% 
+  paste0( std_dev_by_stn[1]$stationname %>% sQuote(), 
+          " with a standard deviation of ",
+          std_dev_by_stn[1]$std_dev_rides %>% as.integer(),
+          " boardings per day" ) %>%
+  print()
