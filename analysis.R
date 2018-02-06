@@ -38,16 +38,16 @@ keycols <- c( "stationname", "DATE", "daytype" )
 sum_by_uniq <- copy[, .( sum_rides = rides %>% sum() ), by = keycols ]
 
 ##calculate rideship per day by station
-avg_by_stn <- sum_by_uniq[ sum_rides > 0 , .( avg_rides = sum_rides %>% mean ), by = stationname ] %>%
+avg_by_stn <- sum_by_uniq[ sum_rides > 0, .( avg_rides = sum_rides %>% mean ), by = .( stationname, daytype ) ] %>%
   ##sort in descending order
   (function(x) x[order(-avg_rides )])
   
 ##print results
-"The highest average ridership is for station: " %>% 
+"The highest average ridership is for station: " %>%
   paste0( avg_by_stn[1]$stationname %>% sQuote(), 
          " with an average of ",
          avg_by_stn[1]$avg_rides %>% as.integer(),
-         " boardings per day" ) %>%
+         " boardings per weekday" ) %>%
   print()
 
 
@@ -70,4 +70,53 @@ std_dev_by_stn <- sum_by_uniq[ daytype == "W" & sum_rides > 0 ] %>% #filter out 
 
 
 
-####QUESTION 3: Choose a business
+####QUESTION 3: Choose a business -- primary care!
+##establish scope to just downtown since highest ridership located here
+zips <- c(
+  60601, 60602, 60603, 60604, 60605, 60606, 60607, 60616, 60661,
+  60611, 60654,
+  60622, 60610,
+  60608,
+  60612, 60614
+)
+zips <- zips %>% unique()
+
+##create map of stations
+raw_cook <- read.csv( file = "cook.csv", stringsAsFactors = FALSE ) %>% as.data.table()
+copy_cook <- raw_cook  %>% copy()
+
+# make sure addresses are all caps and tag zipcode to end
+copy_cook <-
+  copy_cook[POSTCODE %in% zips &
+              LAT <= 41.92][, c("full_addr") := .(paste(NUMBER,
+                                                        STREET %>% toupper(),
+                                                        POSTCODE,
+                                                        sep = " "))]
+
+## geocode addresses to latitude/longitude
+#####
+#####
+library( ggmap )
+qmplot(
+  x = LON,
+  y = LAT,
+  data = copy_cook,
+  colour = I('darkorange'),
+  alpha = I(0.8),
+  size = I(0.2),
+  source = "stamen",
+  maptype = "toner-background"
+)
+
+# q %>% geom_point( aes( LON, LAT, colour ))
+
+##plot histogram
+library( scales )
+qplot( copy[stationname == "Clark/Lake" ]$rides, geom="histogram", col=I("white")) + 
+  scale_x_continuous( label = comma ) +
+  scale_y_continuous( label = comma ) +
+  labs( x = "rides per day", y = "frequency" ) +
+  theme_minimal( base_size = 16 )
+
+
+##plot trend graph
