@@ -37,7 +37,7 @@ keycols <- c( "stationname", "DATE", "daytype" )
 ##calculate the sum of rides by stationname, date and daytype
 sum_by_uniq <- copy[, .( sum_rides = rides %>% sum() ), by = keycols ]
 
-##calculate rideship per day by station
+##calculate ridership per day by station
 avg_by_stn <- sum_by_uniq[ sum_rides > 0, .( avg_rides = sum_rides %>% mean ), by = .( stationname, daytype ) ] %>%
   ##sort in descending order
   (function(x) x[order(-avg_rides )])
@@ -71,7 +71,7 @@ std_dev_by_stn <- sum_by_uniq[ daytype == "W" & sum_rides > 0 ] %>% #filter out 
 
 
 ####QUESTION 3: Choose a business -- primary care!
-##establish scope to just downtown since highest ridership located here
+##establish scope to downtown since highest ridership located here
 zips <- c(
   60601, 60602, 60603, 60604, 60605, 60606, 60607, 60616, 60661,
   60611, 60654,
@@ -97,6 +97,7 @@ copy_cook <-
 #####
 #####
 library( ggmap )
+##macro scale map
 qmplot(
   x = LON,
   y = LAT,
@@ -108,15 +109,43 @@ qmplot(
   maptype = "toner-background"
 )
 
-# q %>% geom_point( aes( LON, LAT, colour ))
+##zoom in on clark/lake
+zips <- c( 60601 ) #zipcode for Clark/Lake
+copy_cook <-
+  copy_cook[POSTCODE %in%  zips &
+              LAT <= 41.92][, c("full_addr") := .(paste(NUMBER,
+                                                        STREET %>% toupper(),
+                                                        POSTCODE,
+                                                        sep = " "))]
+qmplot(
+  x = LON,
+  y = LAT,
+  data = copy_cook,
+  colour = I('darkorange'),
+  alpha = I(0.8),
+  size = I(2),
+  source = "stamen",
+  maptype = "toner-background"
+)
 
-##plot histogram
+
+
+##plot histogram of Clark/Lake
 library( scales )
-qplot( copy[stationname == "Clark/Lake" ]$rides, geom="histogram", col=I("white")) + 
+qplot( sum_by_uniq[stationname == "Clark/Lake" & 
+                     sum_rides > 0 ]$sum_rides, geom="histogram", col=I("white")) + 
   scale_x_continuous( label = comma ) +
   scale_y_continuous( label = comma ) +
   labs( x = "rides per day", y = "frequency" ) +
   theme_minimal( base_size = 16 )
 
-
-##plot trend graph
+##plot histogram of Lake/State
+qplot(sum_by_uniq[stationname == "Lake/State" &
+                    daytype == "W" & 
+                    sum_rides > 0]$sum_rides,
+      geom = "histogram",
+      col = I("white")) + 
+  scale_x_continuous( label = comma ) +
+  scale_y_continuous( label = comma ) +
+  labs( x = "rides per weekday", y = "frequency" ) +
+  theme_minimal( base_size = 16 )
